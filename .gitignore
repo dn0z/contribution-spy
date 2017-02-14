@@ -5,6 +5,7 @@ __pycache__/
 
 .idea/
 usernames.txt
+contributions.csv
 
 # C extensions
 *.so
