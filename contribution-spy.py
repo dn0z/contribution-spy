@@ -33,6 +33,8 @@ def main():
 
     contribs_prev = None
 
+    # extra_contribs = 0
+
     while True:
         # Get number of contributions
         r = get(URL % username)
@@ -40,8 +42,15 @@ def main():
         parser.feed(r.text)
         d = dict(parser.rects[-1])
 
+        # number = int(d["data-count"]) + extra_contribs
         number = int(d["data-count"])
         date = d["data-date"]
+
+        # # Add possibility of changing the number of contribs.
+        # if randint(0, 9) > 5:
+        #     print("Adding 1!")
+        #     extra_contribs += 1
+        #     number += 1
 
         # If this is the 1st loop, set the previous contributions to current
         if contribs_prev is None:
@@ -57,15 +66,17 @@ def main():
             with open(log_file, "w") as f:
                 f.write("curr_time,ghb_date,contribs,diff\n")
 
-        # Write to log file
-        with open(log_file, "a") as f:
-            f.write(str(current_date) + "," + date + "," + str(number) +
-                    "," + str(contribs_diff) + "\n")
-            # print(str(current_date) + "," + date + "," + str(number) +
-            #       "," + str(contribs_diff) + "\n")
+        # Write to log file if there was a change in contributions
+        if contribs_diff > 0:
+            with open(log_file, "a") as f:
+                f.write(str(current_date) + "," + date + "," + str(number) +
+                        "," + str(contribs_diff) + "\n")
 
-        # Save new "previous" number of contributions
-        contribs_prev = number
+            # Save new "previous" number of contributions
+            contribs_prev = number
+
+        # print(str(current_date) + "," + date + "," + str(number) +
+        #       "," + str(contribs_diff) + "\n")
 
         # Wait five minutes
         time.sleep(5)
