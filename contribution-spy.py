@@ -36,7 +36,7 @@ def main():
 
     while True:
         # Get number of contributions
-        r = get(URL % username)
+        r = get(URL % (username.strip()))
         parser = CustomHTMLParser()
         parser.feed(r.text)
         d = dict(parser.rects[-1])
