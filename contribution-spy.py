@@ -3,6 +3,7 @@
 import datetime
 import os.path
 import time
+from random import randint
 
 from HTMLParser import HTMLParser
 from requests import get
@@ -33,8 +34,6 @@ def main():
 
     contribs_prev = None
 
-    # extra_contribs = 0
-
     while True:
         # Get number of contributions
         r = get(URL % username)
@@ -42,15 +41,8 @@ def main():
         parser.feed(r.text)
         d = dict(parser.rects[-1])
 
-        # number = int(d["data-count"]) + extra_contribs
         number = int(d["data-count"])
         date = d["data-date"]
-
-        # # Add possibility of changing the number of contribs.
-        # if randint(0, 9) > 5:
-        #     print("Adding 1!")
-        #     extra_contribs += 1
-        #     number += 1
 
         # If this is the 1st loop, set the previous contributions to current
         if contribs_prev is None:
@@ -75,11 +67,13 @@ def main():
             # Save new "previous" number of contributions
             contribs_prev = number
 
-        # print(str(current_date) + "," + date + "," + str(number) +
-        #       "," + str(contribs_diff) + "\n")
+            # Print change to console
+            print(str(current_date) + " -> There was a change of: " +
+                  str(contribs_diff) + " contributions!")
 
-        # Wait five minutes
-        time.sleep(5)
+        # Wait 150-500 seconds at random to simulate superhuman behavior
+        wait_time = randint(150, 500)
+        time.sleep(wait_time)
 
 
 if __name__ == '__main__':
