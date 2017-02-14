@@ -4,7 +4,7 @@ from HTMLParser import HTMLParser
 from requests import get
 
 URL = "https://github.com/users/%s/contributions"
-username = "USERNAME_TO_CHECK"
+log_file = "contributions.log"
 
 
 class CustomHTMLParser(HTMLParser):
@@ -18,6 +18,10 @@ class CustomHTMLParser(HTMLParser):
 
 
 def main():
+    # Get username to check from file
+    with open("usernames.txt") as f:
+        username = f.readline()
+
     r = get(URL % username)
     parser = CustomHTMLParser()
     parser.feed(r.text)
