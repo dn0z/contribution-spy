@@ -52,6 +52,7 @@ def main():
         elif date != date_prev:
             # The date changed, reset the number of contributions
             contribs_prev = 0
+            date_prev = date
 
         # Get current time and difference of contributions
         current_date = datetime.datetime.now()
