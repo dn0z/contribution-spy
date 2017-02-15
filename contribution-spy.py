@@ -33,6 +33,7 @@ def main():
         return
 
     contribs_prev = None
+    date_prev = None
 
     while True:
         # Get number of contributions
@@ -45,8 +46,12 @@ def main():
         date = d["data-date"]
 
         # If this is the 1st loop, set the previous contributions to current
-        if contribs_prev is None:
+        if contribs_prev is None or date_prev is None:
             contribs_prev = number
+            date_prev = date
+        elif date != date_prev:
+            # The date changed, reset the number of contributions
+            contribs_prev = 0
 
         # Get current time and difference of contributions
         current_date = datetime.datetime.now()
