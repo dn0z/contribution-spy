@@ -1,17 +1,18 @@
 #!/usr/bin/env python
 
 import datetime
-import os.path
 import time
+import json
+import sys
+import os
 from random import randint
 
-from HTMLParser import HTMLParser
-from requests import get
-
-URL = "https://github.com/users/%s/contributions"
-log_file = "contributions.csv"
+from html.parser import HTMLParser
+from requests import get, exceptions
+from pushover import Client
 
 
+# noinspection SpellCheckingInspection
 class CustomHTMLParser(HTMLParser):
     def __init__(self):
         HTMLParser.__init__(self)
@@ -22,22 +23,87 @@ class CustomHTMLParser(HTMLParser):
             self.rects.append(attrs)
 
 
+class ExternalData(object):
+    def __init__(self):
+        cd = os.path.join(os.getcwd(), os.path.dirname(__file__))
+        __location__ = os.path.realpath(cd)
+
+        # Read `config.json`
+        json_contents = self.get_local_json_contents(
+            os.path.join(__location__, "config.json"))
+
+        # Make sure it contains the required properties
+        if json_contents["username"] is None:
+            raise ValueError("GitHub username is not set")
+        if json_contents["logFile"] is None:
+            raise ValueError("Log file is not set")
+        if json_contents["pushoverUserKey"] is None:
+            raise ValueError("Pushover user key is not set")
+        if json_contents["pushoverApiToken"] is None:
+            raise ValueError("Pushover API token is not set")
+
+        self.username = json_contents["username"]
+        self.log_file = json_contents["logFile"]
+        self.user_key = json_contents["pushoverUserKey"]
+        self.api_token = json_contents["pushoverApiToken"]
+
+    @staticmethod
+    def get_local_json_contents(path_to_json):
+        try:
+            with open(path_to_json) as json_file:
+                try:
+                    data = json.load(json_file)
+                except ValueError:
+                    print("Invalid JSON")
+                    raise
+        except IOError:
+            print("An error occurred while reading the JSON file")
+            raise
+
+        return data
+
+
+def wait_random():
+    # Wait 150-500 seconds at random to simulate superhuman behavior
+    wait_time = randint(150, 500)
+    time.sleep(wait_time)
+
+
 # noinspection SpellCheckingInspection
 def main():
-    # Get username to check from file
-    with open("usernames.txt") as f:
-        username = f.readline()
+    # Load the external data
+    external = ExternalData()
+
+    # Check the argument to determine whether we are going to send push notifications
+    client = None
+    if len(sys.argv) > 1:
+        if sys.argv[1].lower() in ["true", "yes", "y"]:
+            client = Client(external.user_key, api_token=external.api_token)
 
     # If username has length 0, do not run
-    if len(username) == 0:
+    if len(external.username) == 0:
+        print("Username is empty")
         return
 
     contribs_prev = None
     date_prev = None
 
+    print("Spying on " + external.username)
+
     while True:
         # Get number of contributions
-        r = get(URL % (username.strip()))
+        URL = "https://github.com/users/%s/contributions"
+        r = None
+
+        try:
+            r = get(URL % (external.username.strip()))
+        except exceptions.RequestException as e:
+            print(e)
+
+        if r is None:
+            wait_random()
+            continue
+
         parser = CustomHTMLParser()
         parser.feed(r.text)
         d = dict(parser.rects[-1])
@@ -59,16 +125,30 @@ def main():
         contribs_diff = number - contribs_prev
 
         # If log file does not exist, create it with headers
-        if not os.path.isfile(log_file):
+        if not os.path.isfile(external.log_file):
             # Create log file with headers
-            with open(log_file, "w") as f:
-                f.write("curr_time,ghb_date,contribs,diff\n")
+            try:
+                with open(external.log_file, "w") as f:
+                    f.write("curr_time,ghb_date,contribs,diff\n")
+            except IOError:
+                print("Could not create the log file with headers")
+                raise
 
-        # Write to log file if there was a change in contributions
+        # Check if there was a change in contributions
         if contribs_diff > 0:
-            with open(log_file, "a") as f:
-                f.write(str(current_date) + "," + date + "," + str(number) +
-                        "," + str(contribs_diff) + "\n")
+            # Send push notification
+            if client is not None:
+                msg_base = str(contribs_diff) + " contributions" if contribs_diff > 1 else "a contribution"
+                client.send_message(external.username + " made " + msg_base,
+                                    title="New contribution")
+
+            # Write to log file
+            try:
+                with open(external.log_file, "a") as f:
+                    f.write(str(current_date) + "," + date + "," + str(number) +
+                            "," + str(contribs_diff) + "\n")
+            except IOError:
+                print("Could not write to log file")
 
             # Save new "previous" number of contributions
             contribs_prev = number
@@ -77,9 +157,7 @@ def main():
             print(str(current_date) + " -> There was a change of: " +
                   str(contribs_diff) + " contributions!")
 
-        # Wait 150-500 seconds at random to simulate superhuman behavior
-        wait_time = randint(150, 500)
-        time.sleep(wait_time)
+        wait_random()
 
 
 if __name__ == '__main__':

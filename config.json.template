@@ -1,0 +1,6 @@
+{
+  "username": "GITHUB_USERNAME_TO_SPY",
+  "logFile": "PATH_TO_CSV_LOG_FILE",
+  "pushoverUserKey": "YOUR_PUSHOVER_USER_KEY",
+  "pushoverApiToken": "YOUR_PUSHOVER_API_TOKEN"
+}
